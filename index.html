@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Network Traffic Monitor</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Segoe UI;
+    background:linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+    color:#e2e8f0;
+}
+
+.header{
+    text-align:center;
+    padding:20px;
+    background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);
+    animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.header h1{
+    font-size:2em;
+    margin:0;
+}
+
+.container{
+    padding:20px;
+}
+
+/* Buttons */
+button{
+    padding:10px 15px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+    margin:5px;
+    transition:transform 0.2s, box-shadow 0.2s;
+}
+
+button:hover{
+    transform:translateY(-2px);
+    box-shadow:0 5px 15px rgba(0,0,0,0.3);
+}
+
+.start{background:linear-gradient(135deg,#22c55e,#16a34a);color:white;}
+.stop{background:linear-gradient(135deg,#ef4444,#dc2626);color:white;}
+
+/* Filters */
+.filter-box{
+    background:linear-gradient(135deg,#1e293b,#0f172a);
+    padding:20px;
+    border-radius:15px;
+    margin:15px 0;
+    border:1px solid #334155;
+}
+
+.filter-box input, .filter-box select{
+    padding:8px;
+    margin:5px;
+    border-radius:6px;
+    border:1px solid #334155;
+    background:#0f172a;
+    color:#e2e8f0;
+}
+
+/* Stats */
+.stats{
+    display:flex;
+    gap:15px;
+    flex-wrap:wrap;
+    margin-top:15px;
+}
+
+.card{
+    background:linear-gradient(135deg,#1e293b,#0f172a);
+    padding:15px;
+    border-radius:15px;
+    min-width:130px;
+    text-align:center;
+    transition:transform 0.3s;
+    border:1px solid #334155;
+}
+
+.card:hover{
+    transform:translateY(-5px);
+    border-color:#6366f1;
+}
+
+.card-value{
+    font-size:28px;
+    font-weight:bold;
+    background:linear-gradient(135deg,#a855f7,#ec4899);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    margin-top:5px;
+}
+
+/* Table */
+.table-wrapper{
+    overflow-x:auto;
+    border-radius:15px;
+    background:#1e293b;
+}
+
+table{
+    width:100%;
+    margin-top:15px;
+    border-collapse:collapse;
+    background:#1e293b;
+}
+
+th,td{
+    padding:12px;
+    border-bottom:1px solid #334155;
+    text-align:center;
+}
+
+th{
+    background:linear-gradient(135deg,#334155,#1e293b);
+    position:sticky;
+    top:0;
+    font-weight:bold;
+    color:#a855f7;
+}
+
+tr:hover{
+    background:#334155;
+    transition:background 0.3s;
+}
+
+/* Logs */
+.log-box{
+    margin-top:15px;
+    background:#0f172a;
+    padding:15px;
+    height:200px;
+    overflow:auto;
+    font-size:13px;
+    border-radius:15px;
+    border:1px solid #334155;
+}
+
+.log-entry{
+    padding:8px;
+    border-bottom:1px solid #334155;
+    font-family:monospace;
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn{
+    from{ opacity:0; transform:translateX(-10px); }
+    to{ opacity:1; transform:translateX(0); }
+}
+
+.log-time{
+    color:#22c55e;
+    font-weight:bold;
+}
+
+/* New Styles */
+.filter-btn{
+    background:linear-gradient(135deg,#3b82f6,#2563eb);
+    color:white;
+    padding:8px 20px;
+}
+
+.reset-btn{
+    background:linear-gradient(135deg,#64748b,#475569);
+    color:white;
+    padding:8px 20px;
+}
+
+.service-badge{
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:20px;
+    background:linear-gradient(135deg,#6366f1,#a855f7);
+    color:white;
+    font-size:11px;
+    font-weight:bold;
+}
+
+.port-badge{
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:20px;
+    background:#334155;
+    color:#e2e8f0;
+    font-size:12px;
+    font-weight:bold;
+}
+
+.export-btn{
+    background:linear-gradient(135deg,#22c55e,#16a34a);
+    color:white;
+    padding:8px 20px;
+}
+
+.clear-btn{
+    background:linear-gradient(135deg,#ef4444,#dc2626);
+    color:white;
+    padding:8px 20px;
+}
+
+.search-box{
+    padding:10px;
+    margin:10px 0;
+    border-radius:10px;
+    border:1px solid #334155;
+    background:#0f172a;
+    color:#e2e8f0;
+    width:300px;
+}
+
+.search-box:focus{
+    outline:none;
+    border-color:#6366f1;
+}
+
+.record-count{
+    margin:15px 0;
+    padding:10px 20px;
+    background:linear-gradient(135deg,#1e293b,#0f172a);
+    border-radius:10px;
+    display:inline-block;
+    font-size:14px;
+    border:1px solid #334155;
+}
+
+.protocol-TCP{ color:#22c55e; font-weight:bold; }
+.protocol-UDP{ color:#eab308; font-weight:bold; }
+.protocol-ICMP{ color:#ef4444; font-weight:bold; }
+
+.filter-group{
+    display:inline-block;
+    margin:5px;
+}
+
+.stats-title{
+    font-size:18px;
+    font-weight:bold;
+    margin:20px 0 10px 0;
+    color:#a855f7;
+}
+
+/* Service Filter Dropdown */
+#serviceFilter{
+    padding:8px;
+    margin:5px;
+    border-radius:6px;
+    border:1px solid #334155;
+    background:#0f172a;
+    color:#e2e8f0;
+    min-width:130px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <h1>🌐 Network Traffic Monitoring System</h1>
+    <p>📡 Real-time Packet Analysis | 🔍 Advanced Filtering | 📊 Live Statistics</p>
+</div>
+
+<div class="container">
+
+<!-- CONTROL BUTTONS -->
+<div>
+    <button class="start" onclick="startMonitoring()">▶ Start Monitoring</button>
+    <button class="stop" onclick="stopMonitoring()">⏹ Stop Monitoring</button>
+    <button class="export-btn" onclick="exportData()">📥 Export CSV</button>
+    <button class="clear-btn" onclick="clearLogs()">🗑 Clear Logs</button>
+</div>
+
+<!-- FILTER SECTION -->
+<div class="filter-box">
+    <h3>🔍 Filter Section</h3>
+    <select id="protocol">
+        <option value="">📡 All Protocols</option>
+        <option>🔵 TCP</option>
+        <option>🟡 UDP</option>
+        <option>🔴 ICMP</option>
+    </select>
+
+    <input id="src" placeholder="📤 Source IP (e.g., 192.168.1.1)">
+    <input id="dst" placeholder="📥 Destination IP (e.g., 10.0.0.1)">
+    <input id="srcPort" placeholder="🔌 Source Port (e.g., 12345)">
+    <input id="dstPort" placeholder="🔌 Destination Port (e.g., 80)">
+    
+    <!-- NEW: Service Filter -->
+    <select id="serviceFilter">
+        <option value="">🛠 All Services</option>
+        <option value="HTTP">🌐 HTTP (80)</option>
+        <option value="HTTPS">🔒 HTTPS (443)</option>
+        <option value="DNS">📡 DNS (53)</option>
+        <option value="SSH">🔐 SSH (22)</option>
+        <option value="FTP">📁 FTP (21)</option>
+        <option value="SMTP">📧 SMTP (25)</option>
+        <option value="MySQL">🗄 MySQL (3306)</option>
+        <option value="Redis">⚡ Redis (6379)</option>
+        <option value="MongoDB">🍃 MongoDB (27017)</option>
+        <option value="RDP">🖥 RDP (3389)</option>
+        <option value="IMAP">📨 IMAP (143)</option>
+    </select>
+    
+    <button onclick="applyFilter()" class="filter-btn">✅ Apply Filter</button>
+    <button onclick="resetFilter()" class="reset-btn">🔄 Reset Filter</button>
+</div>
+
+<!-- SEARCH -->
+<div>
+    <input type="text" id="searchBox" class="search-box" placeholder="🔎 Search packets (IP, Protocol, Port, Service)...">
+</div>
+
+<!-- BASIC STATISTICS -->
+<div class="stats-title">📊 Basic Statistics</div>
+<div class="stats">
+    <div class="card">
+        <div>📦 Total Packets</div>
+        <div class="card-value" id="total">0</div>
+    </div>
+    <div class="card">
+        <div>🔵 TCP Packets</div>
+        <div class="card-value" id="tcp">0</div>
+    </div>
+    <div class="card">
+        <div>🟡 UDP Packets</div>
+        <div class="card-value" id="udp">0</div>
+    </div>
+    <div class="card">
+        <div>🔴 ICMP Packets</div>
+        <div class="card-value" id="icmp">0</div>
+    </div>
+    <div class="card">
+        <div>📏 Avg Packet Size</div>
+        <div class="card-value" id="avgSize">0</div>
+    </div>
+</div>
+
+<!-- RECORD COUNT -->
+<div class="record-count">
+    📋 Showing: <span id="displayCount">0</span> / <span id="totalCount">0</span> packets
+</div>
+
+<!-- TABLE -->
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>⏰ Time</th>
+                <th>📤 Source IP</th>
+                <th>🔌 Source Port</th>
+                <th>📥 Destination IP</th>
+                <th>🔌 Destination Port</th>
+                <th>📡 Protocol</th>
+                <th>📦 Packet Size</th>
+                <th>🛠 Service</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+<!-- LOG & RECORD DISPLAY -->
+<h3>📝 Log & Record Display</h3>
+<div class="log-box" id="logs">
+    <div class="log-entry">
+        <span class="log-time">[System]</span>
+        <span>✅ System Ready - Click Start Monitoring to begin</span>
+    </div>
+</div>
+
+</div>
+
+<script>
+
+// ========== ORIGINAL VARIABLES ==========
+let running = false;
+let packets = [];
+
+// ========== SERVICE MAP FUNCTION ==========
+function getService(port){
+    const portMap = {
+        80: "HTTP", 443: "HTTPS", 53: "DNS", 22: "SSH", 21: "FTP",
+        25: "SMTP", 3306: "MySQL", 8080: "HTTP-Alt", 3389: "RDP",
+        143: "IMAP", 993: "IMAPS", 6379: "Redis", 27017: "MongoDB",
+        5432: "PostgreSQL", 27017: "MongoDB", 11211: "Memcached"
+    };
+    return portMap[port] || "Other";
+}
+
+// ========== GENERATE SOURCE PORT ==========
+function generateSourcePort() {
+    return Math.floor(Math.random() * (65535 - 49152 + 1) + 49152);
+}
+
+// ========== LOG FUNCTION ==========
+function log(message) {
+    const logBox = document.getElementById("logs");
+    const time = new Date().toLocaleTimeString();
+    const logEntry = document.createElement("div");
+    logEntry.className = "log-entry";
+    
+    // Add emojis based on message content
+    let emoji = "📌";
+    if(message.includes("Started")) emoji = "🚀";
+    else if(message.includes("Stopped")) emoji = "⏹";
+    else if(message.includes("TCP")) emoji = "🔵";
+    else if(message.includes("UDP")) emoji = "🟡";
+    else if(message.includes("ICMP")) emoji = "🔴";
+    else if(message.includes("Filter")) emoji = "🔍";
+    else if(message.includes("Export")) emoji = "📁";
+    
+    logEntry.innerHTML = `<span class="log-time">[${time}]</span> ${emoji} ${message}`;
+    logBox.insertBefore(logEntry, logBox.firstChild);
+    
+    while(logBox.children.length > 100) {
+        logBox.removeChild(logBox.lastChild);
+    }
+}
+
+// ========== CLEAR LOGS ==========
+function clearLogs() {
+    document.getElementById("logs").innerHTML = '<div class="log-entry"><span class="log-time">[System]</span> 🗑 Logs cleared</div>';
+    log("Logs cleared successfully");
+}
+
+// ========== START MONITORING ==========
+function startMonitoring() {
+    if(running) {
+        log("⚠️ Monitoring already running!");
+        return;
+    }
+    running = true;
+    log("🚀 Monitoring Started - Capturing network packets...");
+    generate();
+}
+
+// ========== STOP MONITORING ==========
+function stopMonitoring() {
+    if(!running) {
+        log("⚠️ Monitoring already stopped!");
+        return;
+    }
+    running = false;
+    log("⏹ Monitoring Stopped");
+}
+
+// ========== GENERATE PACKETS ==========
+function generate() {
+    if(!running) return;
+
+    const protocols = ["TCP", "UDP", "ICMP"];
+    const proto = protocols[Math.floor(Math.random() * 3)];
+    
+    const commonPorts = [80, 443, 53, 22, 21, 25, 3306, 8080, 3389, 143, 6379, 27017];
+    
+    const packet = {
+        time: new Date().toLocaleTimeString(),
+        src: "192.168." + Math.floor(Math.random() * 255) + "." + Math.floor(Math.random() * 255),
+        srcPort: generateSourcePort(),
+        dst: "10.0." + Math.floor(Math.random() * 255) + "." + Math.floor(Math.random() * 255),
+        destPort: commonPorts[Math.floor(Math.random() * commonPorts.length)],
+        protocol: proto,
+        size: Math.floor(Math.random() * 1500) + 64
+    };
+
+    packets.unshift(packet);
+    
+    if(packets.length > 200) packets.pop();
+    
+    const serviceIcon = packet.destPort === 80 ? "🌐" : packet.destPort === 443 ? "🔒" : "📡";
+    log(`📡 ${proto}: ${packet.src}:${packet.srcPort} → ${packet.dst}:${packet.destPort} ${serviceIcon} [${getService(packet.destPort)}]`);
+    
+    updateDisplay();
+    setTimeout(generate, 1000);
+}
+
+// ========== UPDATE DISPLAY ==========
+function updateDisplay() {
+    const filtered = filterData();
+    updateTable(filtered);
+    updateStatistics(filtered);
+    
+    document.getElementById("displayCount").innerText = filtered.length;
+    document.getElementById("totalCount").innerText = packets.length;
+}
+
+// ========== UPDATE TABLE ==========
+function updateTable(data) {
+    const tbody = document.getElementById("tableBody");
+    
+    if(data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px;">📭 No packets to display - Click Start Monitoring</td</tr>';
+        return;
+    }
+    
+    tbody.innerHTML = data.map(p => {
+        // Protocol icon
+        let protoIcon = p.protocol === "TCP" ? "🔵" : p.protocol === "UDP" ? "🟡" : "🔴";
+        // Service icon
+        let serviceIcon = p.destPort === 80 ? "🌐" : p.destPort === 443 ? "🔒" : "🛠";
+        
+        return `
+        <tr>
+            <td>⏰ ${p.time}</td>
+            <td>📤 ${p.src}</td>
+            <td>🔌 <span class="port-badge">${p.srcPort}</span></td>
+            <td>📥 ${p.dst}</td>
+            <td>🔌 <span class="port-badge">${p.destPort}</span></td>
+            <td class="protocol-${p.protocol}">${protoIcon} ${p.protocol}</td>
+            <td>📦 ${p.size} bytes</td>
+            <td>${serviceIcon} <span class="service-badge">${getService(p.destPort)}</span></td>
+        </tr>
+    `}).join("");
+}
+
+// ========== UPDATE STATISTICS ==========
+function updateStatistics(data) {
+    const total = data.length;
+    const tcpCount = data.filter(p => p.protocol === "TCP").length;
+    const udpCount = data.filter(p => p.protocol === "UDP").length;
+    const icmpCount = data.filter(p => p.protocol === "ICMP").length;
+    
+    let avgSize = 0;
+    if(total > 0) {
+        const totalSize = data.reduce((sum, p) => sum + p.size, 0);
+        avgSize = Math.round(totalSize / total);
+    }
+    
+    document.getElementById("total").innerText = total;
+    document.getElementById("tcp").innerText = tcpCount;
+    document.getElementById("udp").innerText = udpCount;
+    document.getElementById("icmp").innerText = icmpCount;
+    document.getElementById("avgSize").innerText = avgSize;
+}
+
+// ========== APPLY FILTER ==========
+function applyFilter() {
+    updateDisplay();
+    log("🔍 Filter applied to current data");
+}
+
+// ========== RESET FILTER ==========
+function resetFilter() {
+    document.getElementById("protocol").value = "";
+    document.getElementById("src").value = "";
+    document.getElementById("dst").value = "";
+    document.getElementById("srcPort").value = "";
+    document.getElementById("dstPort").value = "";
+    document.getElementById("serviceFilter").value = "";
+    document.getElementById("searchBox").value = "";
+    updateDisplay();
+    log("🔄 All filters reset - Showing all packets");
+}
+
+// ========== FILTER DATA (with Service Filter) ==========
+function filterData() {
+    const protocol = document.getElementById("protocol").value.replace(/[^A-Z]/g, '');
+    const srcIP = document.getElementById("src").value.toLowerCase();
+    const dstIP = document.getElementById("dst").value.toLowerCase();
+    const srcPort = document.getElementById("srcPort").value;
+    const dstPort = document.getElementById("dstPort").value;
+    const serviceFilter = document.getElementById("serviceFilter").value;
+    const searchTerm = document.getElementById("searchBox").value.toLowerCase();
+    
+    return packets.filter(p => {
+        let match = true;
+        
+        if(protocol && p.protocol !== protocol) match = false;
+        if(srcIP && !p.src.toLowerCase().includes(srcIP)) match = false;
+        if(dstIP && !p.dst.toLowerCase().includes(dstIP)) match = false;
+        if(srcPort && p.srcPort.toString() !== srcPort) match = false;
+        if(dstPort && p.destPort.toString() !== dstPort) match = false;
+        
+        // NEW: Service filter
+        if(serviceFilter && getService(p.destPort) !== serviceFilter) match = false;
+        
+        if(searchTerm) {
+            const searchMatch = p.time.toLowerCase().includes(searchTerm) ||
+                               p.src.toLowerCase().includes(searchTerm) ||
+                               p.srcPort.toString().includes(searchTerm) ||
+                               p.dst.toLowerCase().includes(searchTerm) ||
+                               p.destPort.toString().includes(searchTerm) ||
+                               p.protocol.toLowerCase().includes(searchTerm) ||
+                               getService(p.destPort).toLowerCase().includes(searchTerm);
+            if(!searchMatch) match = false;
+        }
+        
+        return match;
+    });
+}
+
+// ========== EXPORT DATA ==========
+function exportData() {
+    if(packets.length === 0) {
+        log("⚠️ No data to export!");
+        return;
+    }
+    
+    const headers = ["Time", "Source IP", "Source Port", "Destination IP", "Destination Port", "Protocol", "Packet Size", "Service"];
+    const csvRows = [headers];
+    
+    packets.forEach(p => {
+        csvRows.push([p.time, p.src, p.srcPort, p.dst, p.destPort, p.protocol, p.size, getService(p.destPort)]);
+    });
+    
+    const csvContent = csvRows.map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], {type: "text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `network_traffic_${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    log(`📁 Exported ${packets.length} packets to CSV file`);
+}
+
+// ========== EVENT LISTENERS ==========
+document.getElementById("searchBox")?.addEventListener("keyup", () => updateDisplay());
+document.getElementById("srcPort")?.addEventListener("keyup", () => updateDisplay());
+document.getElementById("dstPort")?.addEventListener("keyup", () => updateDisplay());
+document.getElementById("serviceFilter")?.addEventListener("change", () => updateDisplay());
+
+// Initial log
+log("🎯 Network Traffic Monitor Ready");
+log("💡 Click Start Monitoring to begin capturing packets");
+log("🔧 Use filters to narrow down packet view");
+log("🆕 New: Service filter added!");
+
+</script>
+
+</body>
+</html>
